@@ -60,6 +60,33 @@ def create_permit_service(request: PermitRequest):
         permit_type=request.permit_type,
     )
 
+def update_permit_service(permit_id: int, request: PermitRequest):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE permits
+        SET project_name = ?, location = ?, permit_type = ?
+        WHERE id = ?
+        """,
+        (request.project_name, request.location, request.permit_type, permit_id),
+    )
+    conn.commit()
+
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Permit not found")
+
+    conn.close()
+
+    return PermitResponse(
+        id=permit_id,
+        message="Permit updated successfully",
+        project_name=request.project_name,
+        location=request.location,
+        permit_type=request.permit_type,
+    )
+
 def delete_permit_service(permit_id: int):
     conn = get_connection()
     cursor = conn.cursor()

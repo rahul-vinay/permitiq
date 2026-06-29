@@ -6,6 +6,7 @@ from backend.app.services import (
     get_permit_service,
     create_permit_service,
     delete_permit_service,
+    update_permit_service,
 )
 
 app = FastAPI()
@@ -33,6 +34,10 @@ def get_permit(permit_id: int):
 @app.post("/permits", response_model=PermitResponse)
 def create_permit(request: PermitRequest):
     return create_permit_service(request)
+
+@app.put("/permits/{permit_id}", response_model=PermitResponse)
+def update_permit(permit_id: int, request: PermitRequest):
+    return update_permit_service(permit_id, request)
 
 @app.delete("/permits/{permit_id}")
 def delete_permit(permit_id: int):
