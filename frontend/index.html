@@ -5,16 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PermitIQ</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 20px; }
-    h1, h2 { margin-bottom: 10px; }
-    form, .filters { display: grid; gap: 10px; margin-bottom: 20px; }
-    input, button { padding: 10px; font-size: 14px; }
-    button { cursor: pointer; margin-right: 8px; }
-    .permit { border: 1px solid #ccc; padding: 12px; margin-bottom: 10px; border-radius: 8px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      margin-bottom: 10px;
+    }
+
+    form, .filters {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    button {
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .permit {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    .message {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .success {
+      background-color: #e6ffed;
+      color: #1a7f37;
+      border: 1px solid #b7ebc6;
+    }
+
+    .error {
+      background-color: #ffeaea;
+      color: #b42318;
+      border: 1px solid #f5c2c7;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
   <h1>PermitIQ</h1>
+
+  <div id="messageBox" class="message"></div>
 
   <h2 id="formTitle">Create Permit</h2>
   <form id="permitForm">
@@ -22,14 +76,20 @@
     <input type="text" id="project_name" placeholder="Project Name" required />
     <input type="text" id="location" placeholder="Location" required />
     <input type="text" id="permit_type" placeholder="Permit Type" required />
-    <button type="submit">Save Permit</button>
+    <div class="button-row">
+      <button type="submit">Save Permit</button>
+      <button type="button" onclick="resetForm()">Cancel Edit</button>
+    </div>
   </form>
 
   <h2>Filter Permits</h2>
   <div class="filters">
     <input type="text" id="filter_location" placeholder="Filter by location" />
     <input type="text" id="filter_type" placeholder="Filter by permit type" />
-    <button onclick="loadPermits()">Apply Filters</button>
+    <div class="button-row">
+      <button onclick="loadPermits()">Apply Filters</button>
+      <button onclick="clearFilters()">Clear Filters</button>
+    </div>
   </div>
 
   <h2>Permits</h2>
@@ -38,33 +98,79 @@
   <script>
     const API_BASE = "";
 
+    function showMessage(text, type = "success") {
+      const box = document.getElementById("messageBox");
+      box.textContent = text;
+      box.className = `message ${type}`;
+      box.style.display = "block";
+
+      setTimeout(() => {
+        box.style.display = "none";
+      }, 3000);
+    }
+
+    function resetForm() {
+      document.getElementById("permitForm").reset();
+      document.getElementById("permit_id").value = "";
+      document.getElementById("formTitle").innerText = "Create Permit";
+    }
+
+    function clearFilters() {
+      document.getElementById("filter_location").value = "";
+      document.getElementById("filter_type").value = "";
+      loadPermits();
+    }
+
     async function loadPermits() {
-      const location = document.getElementById("filter_location").value.trim();
-      const permitType = document.getElementById("filter_type").value.trim();
+      try {
+        const location = document.getElementById("filter_location").value.trim();
+        const permitType = document.getElementById("filter_type").value.trim();
 
-      const params = new URLSearchParams();
-      if (location) params.append("location", location);
-      if (permitType) params.append("permit_type", permitType);
+        const params = new URLSearchParams();
+        if (location) params.append("location", location);
+        if (permitType) params.append("permit_type", permitType);
 
-      const response = await fetch(`${API_BASE}/permits?${params.toString()}`);
-      const permits = await response.json();
+        const response = await fetch(`${API_BASE}/permits?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error("Failed to load permits");
+        }
 
-      const permitsList = document.getElementById("permitsList");
-      permitsList.innerHTML = "";
+        const permits = await response.json();
+        const permitsList = document.getElementById("permitsList");
+        permitsList.innerHTML = "";
 
-      permits.forEach(permit => {
-        const div = document.createElement("div");
-        div.className = "permit";
-        div.innerHTML = `
-          <strong>ID:</strong> ${permit.id}<br>
-          <strong>Project:</strong> ${permit.project_name}<br>
-          <strong>Location:</strong> ${permit.location}<br>
-          <strong>Type:</strong> ${permit.permit_type}<br><br>
-          <button onclick='editPermit(${JSON.stringify(permit)})'>Edit</button>
-          <button onclick='deletePermit(${permit.id})'>Delete</button>
-        `;
-        permitsList.appendChild(div);
-      });
+        if (permits.length === 0) {
+          permitsList.innerHTML = "<p>No permits found.</p>";
+          return;
+        }
+
+        permits.forEach(permit => {
+          const div = document.createElement("div");
+          div.className = "permit";
+
+          div.innerHTML = `
+            <strong>ID:</strong> ${permit.id}<br>
+            <strong>Project:</strong> ${permit.project_name}<br>
+            <strong>Location:</strong> ${permit.location}<br>
+            <strong>Type:</strong> ${permit.permit_type}<br><br>
+          `;
+
+          const editButton = document.createElement("button");
+          editButton.textContent = "Edit";
+          editButton.onclick = () => editPermit(permit);
+
+          const deleteButton = document.createElement("button");
+          deleteButton.textContent = "Delete";
+          deleteButton.onclick = () => deletePermit(permit.id);
+
+          div.appendChild(editButton);
+          div.appendChild(deleteButton);
+
+          permitsList.appendChild(div);
+        });
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
     }
 
     function editPermit(permit) {
@@ -76,8 +182,23 @@
     }
 
     async function deletePermit(id) {
-      await fetch(`${API_BASE}/permits/${id}`, { method: "DELETE" });
-      loadPermits();
+      const confirmed = window.confirm(`Are you sure you want to delete permit ${id}?`);
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/permits/${id}`, {
+          method: "DELETE"
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete permit");
+        }
+
+        showMessage(`Permit ${id} deleted successfully`);
+        loadPermits();
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
     }
 
     document.getElementById("permitForm").addEventListener("submit", async (e) => {
@@ -90,24 +211,34 @@
         permit_type: document.getElementById("permit_type").value.trim()
       };
 
-      if (permitId) {
-        await fetch(`${API_BASE}/permits/${permitId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      } else {
-        await fetch(`${API_BASE}/permits`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      }
+      try {
+        let response;
 
-      document.getElementById("permitForm").reset();
-      document.getElementById("permit_id").value = "";
-      document.getElementById("formTitle").innerText = "Create Permit";
-      loadPermits();
+        if (permitId) {
+          response = await fetch(`${API_BASE}/permits/${permitId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          response = await fetch(`${API_BASE}/permits`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Request failed");
+        }
+
+        showMessage(permitId ? "Permit updated successfully" : "Permit created successfully");
+        resetForm();
+        loadPermits();
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
     });
 
     loadPermits();
