@@ -1,6 +1,10 @@
 from typing import Optional
+from pathlib import Path
+
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from backend.app.schemas import PermitRequest, PermitResponse
 from backend.app.db import init_db
 from backend.app.services import (
@@ -13,21 +17,19 @@ from backend.app.services import (
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 @app.on_event("startup")
 def startup():
     init_db()
 
+BASE_DIR = Path(__file__).resolve().parents[2]
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+if FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
 @app.get("/")
-def read_root():
-    return {"message": "PermitIQ backend is running"}
+def serve_frontend():
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 @app.get("/health")
 def health_check():

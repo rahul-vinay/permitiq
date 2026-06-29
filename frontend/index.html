@@ -9,19 +9,20 @@
     h1, h2 { margin-bottom: 10px; }
     form, .filters { display: grid; gap: 10px; margin-bottom: 20px; }
     input, button { padding: 10px; font-size: 14px; }
-    button { cursor: pointer; }
+    button { cursor: pointer; margin-right: 8px; }
     .permit { border: 1px solid #ccc; padding: 12px; margin-bottom: 10px; border-radius: 8px; }
   </style>
 </head>
 <body>
   <h1>PermitIQ</h1>
 
-  <h2>Create Permit</h2>
+  <h2 id="formTitle">Create Permit</h2>
   <form id="permitForm">
+    <input type="hidden" id="permit_id" />
     <input type="text" id="project_name" placeholder="Project Name" required />
     <input type="text" id="location" placeholder="Location" required />
     <input type="text" id="permit_type" placeholder="Permit Type" required />
-    <button type="submit">Submit Permit</button>
+    <button type="submit">Save Permit</button>
   </form>
 
   <h2>Filter Permits</h2>
@@ -35,7 +36,7 @@
   <div id="permitsList"></div>
 
   <script>
-    const API_BASE = "https://super-duper-winner-7g6p9ppxr45cpr4r-8000.app.github.dev";
+    const API_BASE = "";
 
     async function loadPermits() {
       const location = document.getElementById("filter_location").value.trim();
@@ -58,28 +59,54 @@
           <strong>ID:</strong> ${permit.id}<br>
           <strong>Project:</strong> ${permit.project_name}<br>
           <strong>Location:</strong> ${permit.location}<br>
-          <strong>Type:</strong> ${permit.permit_type}
+          <strong>Type:</strong> ${permit.permit_type}<br><br>
+          <button onclick='editPermit(${JSON.stringify(permit)})'>Edit</button>
+          <button onclick='deletePermit(${permit.id})'>Delete</button>
         `;
         permitsList.appendChild(div);
       });
     }
 
+    function editPermit(permit) {
+      document.getElementById("formTitle").innerText = "Edit Permit";
+      document.getElementById("permit_id").value = permit.id;
+      document.getElementById("project_name").value = permit.project_name;
+      document.getElementById("location").value = permit.location;
+      document.getElementById("permit_type").value = permit.permit_type;
+    }
+
+    async function deletePermit(id) {
+      await fetch(`${API_BASE}/permits/${id}`, { method: "DELETE" });
+      loadPermits();
+    }
+
     document.getElementById("permitForm").addEventListener("submit", async (e) => {
       e.preventDefault();
 
+      const permitId = document.getElementById("permit_id").value;
       const payload = {
         project_name: document.getElementById("project_name").value.trim(),
         location: document.getElementById("location").value.trim(),
         permit_type: document.getElementById("permit_type").value.trim()
       };
 
-      await fetch(`${API_BASE}/permits`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+      if (permitId) {
+        await fetch(`${API_BASE}/permits/${permitId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await fetch(`${API_BASE}/permits`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      }
 
       document.getElementById("permitForm").reset();
+      document.getElementById("permit_id").value = "";
+      document.getElementById("formTitle").innerText = "Create Permit";
       loadPermits();
     });
 
