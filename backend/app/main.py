@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI
 from backend.app.schemas import PermitRequest, PermitResponse
 from backend.app.db import init_db
@@ -24,8 +25,8 @@ def health_check():
     return {"status": "ok"}
 
 @app.get("/permits", response_model=list[PermitResponse])
-def list_permits():
-    return list_permits_service()
+def list_permits(location: Optional[str] = None, permit_type: Optional[str] = None):
+    return list_permits_service(location=location, permit_type=permit_type)
 
 @app.get("/permits/{permit_id}", response_model=PermitResponse)
 def get_permit(permit_id: int):

@@ -2,10 +2,22 @@ from fastapi import HTTPException
 from backend.app.db import get_connection
 from backend.app.schemas import PermitRequest, PermitResponse
 
-def list_permits_service():
+def list_permits_service(location=None, permit_type=None):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, project_name, location, permit_type FROM permits")
+
+    query = "SELECT id, project_name, location, permit_type FROM permits WHERE 1=1"
+    params = []
+
+    if location:
+        query += " AND location = ?"
+        params.append(location)
+
+    if permit_type:
+        query += " AND permit_type = ?"
+        params.append(permit_type)
+
+    cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
 
