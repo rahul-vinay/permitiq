@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# GCP credentials
+*.json
+
+# Local editor settings
+.vscode/
+
+# Frontend dependencies
+node_modules/
