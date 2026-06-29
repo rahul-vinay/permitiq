@@ -1,11 +1,7 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from backend.app.schemas import PermitRequest
 
 app = FastAPI()
-
-class PermitRequest(BaseModel):
-    project_name: str
-    location: str
 
 @app.get("/")
 def read_root():
@@ -22,4 +18,3 @@ def create_permit(request: PermitRequest):
         "project_name": request.project_name,
         "location": request.location
     }
-
