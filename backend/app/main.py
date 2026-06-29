@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from backend.app.schemas import PermitRequest, PermitResponse
 from backend.app.db import init_db, get_connection
 
@@ -35,6 +35,28 @@ def list_permits():
         for row in rows
     ]
 
+@app.get("/permits/{permit_id}", response_model=PermitResponse)
+def get_permit(permit_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, project_name, location, permit_type FROM permits WHERE id = ?",
+        (permit_id,),
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Permit not found")
+
+    return PermitResponse(
+        id=row["id"],
+        message="Permit record",
+        project_name=row["project_name"],
+        location=row["location"],
+        permit_type=row["permit_type"],
+    )
+
 @app.post("/permits", response_model=PermitResponse)
 def create_permit(request: PermitRequest):
     conn = get_connection()
@@ -54,3 +76,17 @@ def create_permit(request: PermitRequest):
         location=request.location,
         permit_type=request.permit_type,
     )
+
+@app.delete("/permits/{permit_id}")
+def delete_permit(permit_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM permits WHERE id = ?", (permit_id,))
+    conn.commit()
+    deleted = cursor.rowcount
+    conn.close()
+
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Permit not found")
+
+    return {"message": f"Permit {permit_id} deleted successfully"}
